@@ -970,6 +970,19 @@ canvas#wvCanvas { display: block; width: 100%; height: 88px; }
 .gw-meter { flex-basis: 100%; height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
 .gw-meter i { display: block; height: 100%; width: 0; background: var(--audio-c, var(--a)); transition: width .08s; }
 #shareEd .btn { width: 100%; margin-bottom: 8px; }
+.setup-scr { position: fixed; inset: 0; z-index: 9500; background: var(--bg); display: none; align-items: center; justify-content: center; padding: 28px; }
+.setup-scr.show { display: flex; }
+.setup-box { width: 100%; max-width: 380px; text-align: center; }
+.setup-owl { font-size: 54px; margin-bottom: 10px; }
+.setup-t { font-family: var(--fd); font-size: 24px; font-weight: 800; color: var(--tx); margin-bottom: 8px; }
+.setup-s { font-size: 14px; color: var(--tx2); line-height: 1.6; margin-bottom: 22px; }
+.setup-m { font-family: var(--fm); font-size: 11px; color: var(--tx3); margin: 10px 0 22px; min-height: 16px; }
+.setup-box .btn { width: 100%; margin-bottom: 8px; }
+.sheet.lyr-mode .cs-pair.ly .cs-lyric { background: rgba(232,160,48,.14); border-radius: 4px; cursor: text; }
+.sheet.lyr-mode.editing .cs-ch { background: transparent; cursor: default; }
+#chordTl .pill.cur { background: var(--a); border-color: var(--a); color: #000; }
+#chordTl .pill.cur span { opacity: .85; }
+.setup-n { font-size: 11px; color: var(--tx3); line-height: 1.5; margin-top: 6px; }
 .tl-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
 .tl-row .tr-t { margin: 0; padding-top: 2px; flex-shrink: 0; }
 .tl-body { min-width: 0; }
@@ -1396,6 +1409,12 @@ canvas#wvCanvas { display: block; width: 100%; height: 88px; }
         </button>
       </div>
     </div>
+    <div id="micVisualizer" style="display:none; background:var(--bg2); border:1px solid var(--ln); border-radius:12px; padding:10px; margin-top:12px; height:60px; position:relative; overflow:hidden;">
+      <canvas id="micCanvas" style="width:100%; height:100%; display:block;"></canvas>
+      <div style="position:absolute; top:8px; left:12px; font-family:var(--fm); font-size:8px; letter-spacing:2px; color:var(--red); display:flex; align-items:center; gap:6px;">
+        <span style="width:6px; height:6px; border-radius:50%; background:var(--red); animation:pulse 1s infinite;"></span> GRABANDO
+      </div>
+    </div>
   </div>
 
   <div class="loading" id="cLoad"><div class="load-ring"></div><div class="load-t">Analizando</div><div class="load-s">Armando la progresión</div></div>
@@ -1489,19 +1508,10 @@ canvas#wvCanvas { display: block; width: 100%; height: 88px; }
   </div>
 
   <div id="view-lyrics" style="display:none;">
-  <div class="panel" id="transcribePanel" style="display:none;">
     <div class="panel-lbl" style="margin-bottom:12px;">Letra con cifrado</div>
     <div class="ws-card" style="margin-bottom:0;">
       <div class="ws-t">✨ Sacar letra del archivo</div>
       <div class="ws-s">Harmony escucha la canción dentro de tu teléfono y le pone los acordes a cada frase.</div>
-      <div class="panel-label" style="margin:12px 0 6px;">Modelo</div>
-      <div class="genre-wrap" style="margin:0 0 4px;">
-        <select id="wsModel" onchange="wsModelChanged()">
-          <option value="tiny">Rápido · tiny (~40 MB)</option>
-          <option value="base" selected>Equilibrado · base (~100 MB)</option>
-          <option value="small">Preciso · small (~300 MB)</option>
-        </select>
-      </div>
       <div class="panel-label" style="margin:12px 0 6px;">Estilo</div>
       <div class="genre-wrap" style="margin:0 0 8px;"><select id="aGenre" onchange="if(trLines.length) autoCifrar(false)">
         <option value="any">Cualquier género</option>
@@ -1527,12 +1537,11 @@ canvas#wvCanvas { display: block; width: 100%; height: 88px; }
     <details class="ws-help">
       <summary>¿Cómo funciona?</summary>
       <p><b>Acordes:</b> el tono, el BPM y el acorde de cada momento. Toca un acorde y te lleva a ese pedazo de la letra.</p>
-      <p><b>Letra cifrada:</b> la primera vez descarga un modelo de voz (se guarda en el teléfono). Tarda unos minutos y el audio no sale de tu teléfono. Toca una línea para escuchar la canción desde ahí.</p>
+      <p><b>Letra cifrada:</b> el motor de voz se descarga una sola vez al abrir la app (o desde Ajustes) y queda guardado. Sacar la letra tarda unos minutos y el audio no sale de tu teléfono. Toca una línea para escuchar la canción desde ahí.</p>
       <p><b>🎸 Auto-scroll:</b> tócalo, empieza a tocar la guitarra y la letra baja sola siguiendo el tiempo de la canción. Si paras más de 6 segundos, se detiene hasta que sigas. El micrófono solo mide el volumen.</p>
       <p><b>Compartir:</b> por WhatsApp, en texto (.txt) o en ChordPro. También puedes guardarla en Guardadas.</p>
       <p>💡 Con banda, acordeón o la voz tapada habrá errores. Corrígelos en ✎ Editar → Texto.</p>
     </details>
-  </div>
 
   <div id="aResult" style="display:none;">
     <div class="t-bar">
@@ -1633,7 +1642,7 @@ canvas#wvCanvas { display: block; width: 100%; height: 88px; }
       <svg width="60" height="60" viewBox="0 0 110 110" fill="none"><ellipse cx="55" cy="70" rx="28" ry="32" fill="#1c1f2e"/><ellipse cx="55" cy="70" rx="22" ry="26" fill="#232638"/><circle cx="55" cy="44" r="22" fill="#1c1f2e"/><ellipse cx="55" cy="46" rx="16" ry="15" fill="#232638"/><circle cx="47" cy="43" r="3.5" fill="#e8a030"/><circle cx="63" cy="43" r="3.5" fill="#e8a030"/><polygon points="55,49 51,54 59,54" fill="#e8a030" opacity=".7"/><path d="M33 38 Q55 18 77 38" stroke="#e8a030" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="28" y="34" width="10" height="14" rx="5" fill="#e8a030"/><rect x="72" y="34" width="10" height="14" rx="5" fill="#e8a030"/></svg>
       <div>
         <div class="set-owl-name">Armo — Harmony</div>
-        <div class="set-owl-sub">v1.4 · Compositor musical inteligente</div>
+        <div class="set-owl-sub">v1.6 · Compositor musical inteligente</div>
       </div>
     </div>
     <div class="set-sec">
@@ -1664,6 +1673,26 @@ canvas#wvCanvas { display: block; width: 100%; height: 88px; }
       </div>
     </div>
     <div class="set-sec">
+      <div class="set-sec-t">Motor de voz</div>
+      <div class="set-grp">
+        <div class="set-row">
+          <div class="set-ico" style="background:var(--bg3);">✨</div>
+          <div class="set-info"><div class="set-name">Calidad de la letra</div><div class="set-desc" id="wsSetDesc">...</div></div>
+          <select class="set-sel" id="setWsModel" onchange="setWsModelChanged()">
+            <option value="tiny">Rápido</option><option value="base">Equilibrado</option><option value="small">Preciso</option>
+          </select>
+        </div>
+        <div class="set-row" style="cursor:pointer;" onclick="wsDownloadNow()">
+          <div class="set-ico" style="background:var(--bg3);">⬇️</div>
+          <div class="set-info"><div class="set-name">Descargar ahora</div><div class="set-desc">Para sacar letras sin internet (se baja una sola vez)</div></div>
+        </div>
+        <div class="set-row" style="cursor:pointer;" onclick="wsRemove()">
+          <div class="set-ico" style="background:var(--bg3);">🗑️</div>
+          <div class="set-info"><div class="set-name">Quitar descarga</div><div class="set-desc">Libera espacio en el teléfono</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="set-sec">
       <div class="set-sec-t">Datos</div>
       <div class="set-grp">
         <div class="set-row" style="cursor:pointer;" onclick="exportSongs(false)">
@@ -1685,7 +1714,7 @@ canvas#wvCanvas { display: block; width: 100%; height: 88px; }
         </div>
       </div>
     </div>
-    <div class="ver">HARMONY v1.4 &nbsp;·&nbsp; <a href="privacy.html">Privacidad</a></div>
+    <div class="ver">HARMONY v1.6 &nbsp;·&nbsp; <a href="privacy.html">Privacidad</a></div>
   </div>
 </div>
 
@@ -1741,6 +1770,18 @@ canvas#wvCanvas { display: block; width: 100%; height: 88px; }
   </button>
 </nav>
 
+<div class="setup-scr" id="setupScr">
+  <div class="setup-box">
+    <div class="setup-owl">🦉</div>
+    <div class="setup-t" id="setupT">Preparando Harmony</div>
+    <div class="setup-s" id="setupS"></div>
+    <div class="ws-bar ind" id="setupBar"><i id="setupFill"></i></div>
+    <div class="setup-m" id="setupM"></div>
+    <button class="btn btn-teal" id="setupGo" style="display:none;" onclick="setupStart()">Descargar</button>
+    <button class="btn btn-ghost" id="setupSkip" onclick="setupSkip()">Omitir por ahora</button>
+    <div class="setup-n">Funciona mejor con WiFi. Si lo omites, puedes descargarlo después en Ajustes → Motor de voz.</div>
+  </div>
+</div>
 <script>
 // ═══════════════════════════════════════════════════════════
 // HARMONY v1.1 — JS principal
@@ -1802,7 +1843,7 @@ function hideSplash(){
   setTimeout(function(){
     sp.style.display = 'none';
     window.stopArmo();
-    if(!store.get('h-ob', '')) showOnboard();
+    if(!store.get('h-ob', '')) showOnboard(); else maybeSetup();
   }, 650);
 }
 setTimeout(hideSplash, 2200);
@@ -1846,6 +1887,8 @@ function openSet(){
   document.getElementById('lightTog').checked = document.body.classList.contains('light');
   document.getElementById('fsSel').value = store.get('h-fs2', '12');
   document.getElementById('bkDesc').textContent = bkDescText();
+  document.getElementById('setWsModel').value = wsModelKey();
+  wsSettingsStatus();
 }
 function closeSet(){ document.getElementById('setPage').style.display = 'none'; }
 function applyTheme(on){
@@ -2026,6 +2069,7 @@ function toggleVoice(k){
   isRec[k] = true;
   document.getElementById(btnId).classList.add('rec');
   document.getElementById(lblId).textContent = 'DETENER';
+  startMicVisualizer();
   recogs[k] = listen({
     onFinal: function(t){
       var ta = document.getElementById(taId);
@@ -2037,6 +2081,7 @@ function toggleVoice(k){
       isRec[k] = false; recogs[k] = null;
       document.getElementById(btnId).classList.remove('rec');
       document.getElementById(lblId).textContent = 'VOZ';
+      stopMicVisualizer();
     }
   });
 }
@@ -2531,7 +2576,6 @@ function loadAudio(file){
   if(isPlay) pauseAudio();
   document.getElementById('dropZone').style.display = 'none';
   document.getElementById('wavePanel').style.display = 'block';
-  document.getElementById('transcribePanel').style.display = 'block';
   document.getElementById('songName').textContent = file.name.replace(/\.[^.]+$/, '');
   document.getElementById('bpmBig').textContent = '...';
   document.getElementById('bpmTip').textContent = 'Cargando audio...';
@@ -2920,6 +2964,7 @@ function seekToTime(t){
   seeking = false;
   pauseOff = Math.max(0, Math.min(t, audioBuf.duration - 0.1));
   document.getElementById('wvSeek').value = pauseOff;
+  markChordChip(pauseOff);
   playAudio();
 }
 function chip(label, time){
@@ -2929,7 +2974,7 @@ function chip(label, time){
     s.style.cssText = 'opacity:.55;font-size:9px;margin-right:5px;';
     s.textContent = fmt(time);
     b.appendChild(s);
-    b.onclick = function(){ chordTap(time); };
+    b.onclick = function(){ seekToTime(time); };
   }
   b.appendChild(document.createTextNode(label));
   return b;
@@ -2946,7 +2991,8 @@ function showHarm(h){
   else lbl.style.display = 'none';
   var tl = document.getElementById('chordTl');
   tl.innerHTML = '';
-  h.timeline.slice(0, 300).forEach(function(x){ tl.appendChild(chip(x.name, x.t)); });
+  chipEls = []; chipCur = -1;
+  h.timeline.slice(0, 300).forEach(function(x){ var c = chip(x.name, x.t); c.setAttribute('data-t', x.t); chipEls.push(c); tl.appendChild(c); });
   if(trLines.length) autoCifrar(false);
 }
 function analyzeHarmony(buf){
@@ -3023,6 +3069,7 @@ function seekTo(v){
 function tickSeek(){
   if(!isPlay) return;
   var cur = audioCtx.currentTime - startT;
+  markChordChip(cur);
   if(!seeking){
     document.getElementById('wvSeek').value = cur;
     document.getElementById('wvTime').textContent = fmt(cur);
@@ -3037,7 +3084,6 @@ function resetAudio(){
   document.getElementById('audioFile').value = '';
   document.getElementById('dropZone').style.display = 'block';
   document.getElementById('wavePanel').style.display = 'none';
-  document.getElementById('transcribePanel').style.display = 'none';
   document.getElementById('aResult').style.display = 'none';
   switchAudioView('chords');
   document.getElementById('bpmBig').textContent = '—';
@@ -3048,7 +3094,7 @@ function resetAudio(){
   setTimeSig('');
   harmToken++; harm = null;
   document.getElementById('harmPanel').style.display = 'none';
-  document.getElementById('chordTl').innerHTML = '';
+  document.getElementById('chordTl').innerHTML = ''; chipEls = []; chipCur = -1;
   document.getElementById('cycPills').innerHTML = '';
 }
 
@@ -3067,7 +3113,7 @@ function resetAudio(){
 var obStep = 0;
 function showOnboard(){ obStep = 0; document.getElementById('onboard').classList.add('show'); updateOb(); }
 function obNext(){ if(obStep < 2){ obStep++; updateOb(); } else obSkip(); }
-function obSkip(){ document.getElementById('onboard').classList.remove('show'); store.set('h-ob', '1'); }
+function obSkip(){ document.getElementById('onboard').classList.remove('show'); store.set('h-ob', '1'); maybeSetup(); }
 function updateOb(){
   document.querySelectorAll('.ob-step').forEach(function(s, i){ s.classList.toggle('active', i === obStep); });
   document.querySelectorAll('.ob-dot').forEach(function(d, i){ d.classList.toggle('on', i === obStep); });
@@ -3321,7 +3367,7 @@ function saveTextEd(){
   var k = teK, s = state[k];
   var v = document.getElementById('teTa').value.replace(/\r/g, '');
   if(!v.trim()){ alert('El texto no puede quedar vacío.'); return; }
-  if(v !== s.raw){ pushUndo(k); s.raw = normalizeSong(v); afterEdit(k); }
+  if(v !== s.raw){ pushUndo(k); s.raw = normalizeSong(v); if(k === 'a') syncTrFromText(); afterEdit(k); }
   closeTextEd();
 }
 
@@ -3340,6 +3386,7 @@ function toggleEdit(k){
   t.textContent = editOn[k] ? '✓ Listo' : '✎ Editar';
   document.getElementById('ebX-' + k).style.display = editOn[k] ? 'inline-flex' : 'none';
   document.getElementById('ebH-' + k).style.display = editOn[k] ? 'block' : 'none';
+  if(!editOn[k]) setEditTarget(k, 'chords');
   updateEditBar(k);
 }
 function resetEdit(k){
@@ -3351,6 +3398,7 @@ function undoEdit(k){
   var st = undoSt[k]; if(!st.length) return;
   var u = st.pop(), s = state[k];
   s.raw = u.raw; s.off = u.off; s.baseKey = u.baseKey;
+  if(k === 'a') syncTrFromText();
   afterEdit(k);
 }
 function initEdit(){
@@ -3363,6 +3411,8 @@ function initEdit(){
       + '<span id="gwX-' + k + '" style="display:none;gap:6px;"><button class="eb-btn" id="gwRate-' + k + '" onclick="cycleRate()">×1</button><button class="eb-btn" id="gwNow-' + k + '" onclick="followNow()" style="display:none;">Empezar ya</button></span>'
       + '<div class="gw-meter" id="gwM-' + k + '" style="display:none;"><i></i></div><div class="eb-hint" id="gwSt-' + k + '" style="display:none;"></div>'
       + '<span id="ebX-' + k + '" style="display:none;gap:6px;">'
+      + '<button class="eb-btn on" id="ebMc-' + k + '" onclick="setEditTarget(\'' + k + '\',\'chords\')">Acordes</button>'
+      + '<button class="eb-btn" id="ebMl-' + k + '" onclick="setEditTarget(\'' + k + '\',\'lyrics\')">Letra</button>'
       + '<button class="eb-btn" onclick="openTextEd(\'' + k + '\')">Texto</button>'
       + '<button class="eb-btn" id="ebU-' + k + '" onclick="undoEdit(\'' + k + '\')">↶ Deshacer</button></span>'
       + '<div class="eb-hint" id="ebH-' + k + '" style="display:none;">Toca un acorde para cambiarlo o quitarlo. Toca una palabra de la letra para agregar un acorde ahí.</div>';
@@ -3371,6 +3421,10 @@ function initEdit(){
       if(!editOn[k]){ if(k === 'a') lineTap(e); return; }
       var pair = e.target.closest('.cs-pair'); if(!pair) return;
       var ci = parseInt(pair.getAttribute('data-ci'), 10), li = parseInt(pair.getAttribute('data-li'), 10);
+      if(editTgt[k] === 'lyrics'){
+        if(e.target.closest('.cs-lyric') && li >= 0 && pair.classList.contains('ly')) openLineEd(k, li, pair);
+        return;
+      }
       var ch = e.target.closest('.cs-ch');
       if(ch){ openCE(k, { ci: ci, li: li, col: parseInt(ch.getAttribute('data-c'), 10), name: ch.textContent }); return; }
       var ly = e.target.closest('.cs-lyric');
@@ -3525,7 +3579,7 @@ function importSongs(file){
 
 // ── SACAR LA LETRA DEL ARCHIVO (Whisper dentro del teléfono) ─────────
 // La primera vez descarga el modelo (se guarda en el teléfono). El audio nunca sale del teléfono.
-var WORKER_SRC = "// Worker: corre Whisper (transformers.js) dentro del teléfono, sin bloquear la pantalla.\nvar VER = '3.8.1', pipe = null, pipeModel = null;\nfunction post(m){ self.postMessage(m); }\nself.onmessage = async function(e){\n  var d = e.data;\n  if(!d || d.type !== 'run') return;\n  try{\n    post({ type: 'stage', stage: 'lib' });\n    var T = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@' + VER);\n    T.env.allowLocalModels = false;\n    if(!pipe || pipeModel !== d.model){\n      if(pipe && pipe.dispose){ try{ await pipe.dispose(); }catch(x){} }\n      pipe = null;\n      var files = {};\n      post({ type: 'stage', stage: 'model' });\n      pipe = await T.pipeline('automatic-speech-recognition', d.model, {\n        device: 'wasm',\n        dtype: 'q8',\n        progress_callback: function(p){\n          if(p && p.file && p.total){\n            files[p.file] = { l: p.loaded || 0, t: p.total };\n            var L = 0, Tt = 0;\n            for(var k in files){ L += files[k].l; Tt += files[k].t; }\n            post({ type: 'dl', pct: Tt ? L / Tt * 100 : 0, loaded: L, total: Tt });\n          }\n        }\n      });\n      pipeModel = d.model;\n    }\n    post({ type: 'stage', stage: 'run' });\n    var n = 0;\n    var out = await pipe(d.audio, {\n      return_timestamps: true,\n      chunk_length_s: 30,\n      stride_length_s: 5,\n      language: 'spanish',\n      task: 'transcribe',\n      chunk_callback: function(){ n++; post({ type: 'chunk', n: n }); }\n    });\n    post({ type: 'done', id: d.id, chunks: out.chunks || [], text: out.text || '' });\n  }catch(err){\n    post({ type: 'error', id: d.id, message: String((err && err.message) || err) });\n  }\n};\n";
+var WORKER_SRC = "// Worker: corre Whisper (transformers.js) dentro del teléfono, sin bloquear la pantalla.\n// \"preload\" solo descarga el modelo (y lo libera); \"run\" transcribe.\nvar VER = '3.8.1', pipe = null, pipeModel = null, T = null;\nfunction post(m){ self.postMessage(m); }\nasync function lib(id){\n  if(T) return T;\n  post({ type: 'stage', id: id, stage: 'lib' });\n  T = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@' + VER);\n  T.env.allowLocalModels = false;\n  return T;\n}\nasync function load(model, id){\n  await lib(id);\n  if(pipe && pipeModel === model) return pipe;\n  if(pipe && pipe.dispose){ try{ await pipe.dispose(); }catch(x){} }\n  pipe = null; pipeModel = null;\n  var files = {};\n  post({ type: 'stage', id: id, stage: 'model' });\n  pipe = await T.pipeline('automatic-speech-recognition', model, {\n    device: 'wasm',\n    dtype: 'q8',\n    progress_callback: function(p){\n      if(p && p.file && p.total){\n        files[p.file] = { l: p.loaded || 0, t: p.total };\n        var L = 0, Tt = 0;\n        for(var k in files){ L += files[k].l; Tt += files[k].t; }\n        post({ type: 'dl', id: id, pct: Tt ? L / Tt * 100 : 0, loaded: L, total: Tt });\n      }\n    }\n  });\n  pipeModel = model;\n  return pipe;\n}\nself.onmessage = async function(e){\n  var d = e.data;\n  if(!d) return;\n  try{\n    if(d.type === 'preload'){\n      await load(d.model, d.id);\n      try{ if(pipe && pipe.dispose) await pipe.dispose(); }catch(x){}\n      pipe = null; pipeModel = null;\n      post({ type: 'ready', id: d.id });\n      return;\n    }\n    if(d.type !== 'run') return;\n    await load(d.model, d.id);\n    post({ type: 'stage', id: d.id, stage: 'run' });\n    var n = 0;\n    var out = await pipe(d.audio, {\n      return_timestamps: true,\n      chunk_length_s: 30,\n      stride_length_s: 5,\n      language: 'spanish',\n      task: 'transcribe',\n      chunk_callback: function(){ n++; post({ type: 'chunk', id: d.id, n: n }); }\n    });\n    post({ type: 'done', id: d.id, chunks: out.chunks || [], text: out.text || '' });\n  }catch(err){\n    post({ type: 'error', id: d.id, message: String((err && err.message) || err) });\n  }\n};\n";
 var WS_MODELS = { tiny: 'onnx-community/whisper-tiny', base: 'onnx-community/whisper-base', small: 'onnx-community/whisper-small' };
 var WS_SIZES = { tiny: 40, base: 100, small: 300 };
 var wk = null, wsBusy = false, wsRunId = 0, wsT0 = 0, wsTimer = null, wsStage = '', wsPct = 0, wsChunks = 0, wsEst = 1, wsDlText = '';
@@ -3553,6 +3607,7 @@ function getWorker(){
   wk = new Worker(url, { type: 'module' });
   wk.onmessage = wsMessage;
   wk.onerror = function(e){
+    if(pre.busy){ preFail(''); if(e && e.preventDefault) e.preventDefault(); return; }
     wsFail('No se pudo iniciar el modelo de voz. Revisa tu conexión (solo hace falta la primera vez).');
     if(e && e.preventDefault) e.preventDefault();
   };
@@ -3561,14 +3616,13 @@ function getWorker(){
 function wsShow(on){
   document.getElementById('wsProg').style.display = on ? 'block' : 'none';
   var b = document.getElementById('wsBtn'); if(b) b.disabled = !!on;
-  var m = document.getElementById('wsModel'); if(m) m.disabled = !!on;
 }
 function wsRender(){
   var el = Math.floor((Date.now() - wsT0) / 1000), mm = Math.floor(el / 60), ss = el % 60;
   var t = mm + ':' + (ss < 10 ? '0' : '') + ss, msg = '', pct = null;
   if(wsStage === 'audio') msg = 'Preparando el audio…';
   else if(wsStage === 'lib') msg = 'Cargando el motor de voz…';
-  else if(wsStage === 'model'){ msg = wsDlText || 'Descargando el modelo…'; pct = wsPct; }
+  else if(wsStage === 'model'){ msg = wsDlText || 'Cargando el modelo…'; pct = wsDlText ? wsPct : null; }
   else if(wsStage === 'load') msg = 'Cargando el modelo…';
   else if(wsStage === 'run'){
     msg = 'Transcribiendo… ' + t + (wsChunks ? ' · parte ' + Math.min(wsChunks, wsEst) + ' de ~' + wsEst : '');
@@ -3589,6 +3643,7 @@ function wsFail(msg){
 }
 function wsMessage(e){
   var d = e.data || {};
+  if(d.id < 0){ preMessage(d); return; }
   if(d.id && d.id !== wsRunId) return;
   if(d.type === 'stage'){ wsStage = d.stage === 'model' ? 'model' : d.stage; wsRender(); }
   else if(d.type === 'dl'){
@@ -3609,15 +3664,14 @@ function wsMessage(e){
   }
 }
 function startWhisper(){
-  if(wsBusy) return;
+  if(wsBusy || pre.busy) return;
   if(!audioBuf){ alert('Primero sube una canción.'); return; }
   if(!whisperSupported()){ alert('Tu navegador no puede ejecutar el modelo de voz. Usa Chrome actualizado.'); return; }
   if(audioBuf.duration > 600 && !confirm('La canción dura más de 10 minutos y tardará mucho. ¿Continuar?')) return;
   if(trLines.length && !confirm('Se reemplazará la letra transcrita actual. ¿Continuar?')) return;
   stopFollow();
   if(isPlay) pauseAudio();
-  var key = document.getElementById('wsModel').value;
-  store.set('h-wmodel', key);
+  var key = wsModelKey();
   wsBusy = true; var id = ++wsRunId;
   wsStage = 'audio'; wsPct = 0; wsChunks = 0; wsDlText = '';
   wsEst = Math.max(1, Math.ceil(Math.max(1, audioBuf.duration - 10) / 20));
@@ -3705,31 +3759,6 @@ function whisperDone(chunks){
   autoCifrar(true);
   document.getElementById('wsNote').textContent = '✓ Letra lista: ' + lines.length + ' líneas. Corrígela en ✎ Editar → Texto si hace falta.';
 }
-function modelCached(key){
-  if(!window.caches) return Promise.resolve(false);
-  var id = WS_MODELS[key];
-  return caches.open('transformers-cache').then(function(c){ return c.keys(); }).then(function(ks){
-    return ks.some(function(r){ return r.url.indexOf(id) >= 0; });
-  }).catch(function(){ return false; });
-}
-function wsModelChanged(){
-  var key = document.getElementById('wsModel').value;
-  store.set('h-wmodel', key);
-  if(wsBusy) return;
-  var note = document.getElementById('wsNote');
-  modelCached(key).then(function(ok){
-    if(wsBusy) return;
-    note.textContent = ok ? '✓ Modelo guardado en este teléfono. Funciona sin internet.'
-      : 'Primera vez: descarga unos ' + WS_SIZES[key] + ' MB (necesita internet). Después queda guardado.';
-  });
-}
-function initWhisperUI(){
-  var sel = document.getElementById('wsModel'); if(!sel) return;
-  var k = store.get('h-wmodel', 'base');
-  if(WS_MODELS[k]) sel.value = k;
-  wsModelChanged();
-}
-
 // ── AUDIO: VISTAS, SALTO ACORDE → LETRA ──────────────────
 var audioView = 'chords';
 function switchAudioView(v){
@@ -3744,27 +3773,6 @@ function markCurrent(el){
   var sh = el && el.parentNode;
   if(sh) sh.querySelectorAll('.cs-pair.cur').forEach(function(x){ x.classList.remove('cur'); });
   if(el) el.classList.add('cur');
-}
-// Toca un acorde del tiempo: te lleva a ese pedazo de la letra transcrita
-function chordTap(t){
-  if(document.querySelector('#aSheet .cs-pair[data-t]')){ switchAudioView('lyrics'); jumpToTime(t); }
-  else seekToTime(t);
-}
-function jumpToTime(t){
-  var els = document.querySelectorAll('#aSheet .cs-pair[data-t]'), pick = els[0];
-  for(var i = 0; i < els.length; i++){
-    if(parseFloat(els[i].getAttribute('data-t')) <= t + 0.25) pick = els[i]; else break;
-  }
-  if(!pick) return;
-  markCurrent(pick);
-  if(pick.scrollIntoView) pick.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  if(audioBuf){
-    seeking = false;
-    pauseOff = Math.max(0, Math.min(t, audioBuf.duration - 0.1));
-    document.getElementById('wvSeek').value = pauseOff;
-    document.getElementById('wvTime').textContent = fmt(pauseOff);
-    if(isPlay) playAudio();
-  }
 }
 // Tocar una línea de la letra transcrita reproduce la canción desde ahí
 function lineTap(e){
@@ -4084,13 +4092,323 @@ function initShare(){
   document.body.appendChild(d);
 }
 
+// ── PRIMERA VEZ: DESCARGAR LO NECESARIO (motor de voz) ───────
+var pre = { busy: false, id: 0, model: '' }, preSeq = 0, setupKey = '';
+function wsModelKey(){ var k = store.get('h-wmodel', 'base'); return WS_MODELS[k] ? k : 'base'; }
+function sEl(id){ return document.getElementById(id); }
+function setupUI(o){
+  if(o.t !== undefined) sEl('setupT').textContent = o.t;
+  if(o.s !== undefined) sEl('setupS').textContent = o.s;
+  if(o.m !== undefined) sEl('setupM').textContent = o.m;
+  if(o.pct !== undefined){
+    var bar = sEl('setupBar'), f = sEl('setupFill');
+    if(o.pct === null){ bar.classList.add('ind'); f.style.width = ''; }
+    else { bar.classList.remove('ind'); f.style.width = Math.max(2, o.pct) + '%'; }
+  }
+  if(o.go !== undefined){ sEl('setupGo').style.display = o.go ? 'block' : 'none'; if(o.go) sEl('setupGo').textContent = o.go; }
+  if(o.skip !== undefined){ sEl('setupSkip').style.display = o.skip ? 'block' : 'none'; if(o.skip) sEl('setupSkip').textContent = o.skip; }
+}
+function showSetup(key){
+  setupKey = key;
+  sEl('setupScr').classList.add('show');
+  var c = navigator.connection, cell = !!(c && c.type === 'cellular');
+  if(cell){
+    setupUI({ t: 'Preparando Harmony', s: 'Estás con datos móviles. Hay que descargar unos ' + WS_SIZES[key] + ' MB, una sola vez, para sacar la letra de tus canciones sin internet.', m: '', pct: 0, go: 'Descargar ahora', skip: 'Más tarde' });
+  } else setupStart();
+}
+function setupStart(){
+  if(pre.busy) return;
+  var key = setupKey || wsModelKey();
+  pre.busy = true; pre.model = key; pre.id = -(++preSeq);
+  setupUI({ t: 'Descargando lo necesario…', s: 'Es una sola vez. Después podrás sacar la letra de tus canciones sin internet.', m: 'Conectando…', pct: null, go: false, skip: 'Omitir por ahora' });
+  try{ getWorker().postMessage({ type: 'preload', id: pre.id, model: WS_MODELS[key] }); }catch(e){ preFail(''); }
+}
+function preMessage(d){
+  if(!pre.busy || d.id !== pre.id) return;
+  if(d.type === 'stage') setupUI({ m: d.stage === 'lib' ? 'Preparando el motor de voz…' : 'Descargando el modelo…' });
+  else if(d.type === 'dl'){
+    var p = Math.min(99, d.pct || 0);
+    setupUI({ pct: p, m: Math.round(p) + '%  ·  ' + Math.round((d.loaded || 0) / 1048576) + ' de ' + Math.round((d.total || 0) / 1048576) + ' MB' });
+  }
+  else if(d.type === 'ready') preEnd();
+  else if(d.type === 'error') preFail(d.message || '');
+}
+// Se libera el motor de memoria; los archivos quedan guardados en el teléfono
+function preCleanup(){ pre.busy = false; if(wk){ try{ wk.terminate(); }catch(e){} wk = null; } }
+function preEnd(){
+  var key = pre.model;
+  preCleanup();
+  store.set('h-setup', '1'); store.set('h-wpre-' + key, '1');
+  setupUI({ t: '✓ Todo listo', s: 'Ya puedes sacar la letra de tus canciones sin internet.', m: '', pct: 100, go: false, skip: false });
+  setTimeout(function(){ sEl('setupScr').classList.remove('show'); wsRefreshNote(); wsSettingsStatus(); }, 1400);
+}
+function preFail(msg){
+  preCleanup();
+  var net = !msg || /fetch|import|network|load failed|NetworkError/i.test(msg);
+  setupUI({ t: 'No se pudo descargar', s: net ? 'Revisa tu conexión e inténtalo de nuevo. También puedes omitirlo y hacerlo después desde Ajustes.' : 'Ocurrió un error: ' + String(msg).slice(0, 100), m: '', pct: 0, go: 'Reintentar', skip: 'Omitir por ahora' });
+}
+function setupSkip(){
+  if(pre.busy) preCleanup();
+  if(!store.get('h-setup', '')) store.set('h-setup', 'skip');
+  sEl('setupScr').classList.remove('show');
+  wsRefreshNote(); wsSettingsStatus();
+}
+function maybeSetup(){
+  if(store.get('h-setup', '') || pre.busy) return;
+  if(!whisperSupported()){ store.set('h-setup', 'na'); return; }
+  var key = wsModelKey();
+  modelCached(key).then(function(ok){
+    if(ok){ store.set('h-setup', '1'); wsRefreshNote(); return; }
+    if(!navigator.onLine) return;                       // sin internet: se intenta la próxima vez
+    showSetup(key);
+  });
+}
+function modelCached(key){
+  var id = WS_MODELS[key];
+  if(!window.caches) return Promise.resolve(store.get('h-wpre-' + key, '') === '1');
+  return caches.open('transformers-cache').then(function(c){ return c.keys(); }).then(function(ks){
+    return ks.some(function(r){ return r.url.indexOf(id) >= 0; });
+  }).catch(function(){ return false; });
+}
+function wsRefreshNote(){
+  var note = sEl('wsNote');
+  if(!note || wsBusy) return;
+  var key = wsModelKey();
+  modelCached(key).then(function(ok){
+    if(wsBusy) return;
+    note.textContent = ok ? '✓ Motor de voz listo en este teléfono. Funciona sin internet.'
+      : !navigator.onLine ? 'Sin internet: conéctate una vez para descargar el motor de voz (~' + WS_SIZES[key] + ' MB).'
+      : 'El motor de voz aún no está descargado (~' + WS_SIZES[key] + ' MB). Se baja al tocar el botón, o antes desde Ajustes.';
+  });
+}
+function wsSettingsStatus(){
+  var el = sEl('wsSetDesc'); if(!el) return;
+  var key = wsModelKey();
+  modelCached(key).then(function(ok){ el.textContent = ok ? '✓ Descargado en este teléfono' : 'No descargado (~' + WS_SIZES[key] + ' MB)'; });
+}
+function setWsModelChanged(){
+  var key = sEl('setWsModel').value;
+  store.set('h-wmodel', key);
+  wsRefreshNote(); wsSettingsStatus();
+  modelCached(key).then(function(ok){
+    if(ok || !navigator.onLine || pre.busy || wsBusy || !whisperSupported()) return;
+    if(confirm('¿Descargar ahora este modelo (~' + WS_SIZES[key] + ' MB)?')){ closeSet(); showSetup(key); }
+  });
+}
+function wsDownloadNow(){
+  var key = wsModelKey();
+  if(!whisperSupported()){ alert('Tu navegador no puede ejecutar el modelo de voz. Usa Chrome actualizado.'); return; }
+  if(!navigator.onLine){ alert('Sin conexión a internet.'); return; }
+  modelCached(key).then(function(ok){
+    if(ok){ alert('El motor de voz ya está descargado.'); return; }
+    closeSet(); showSetup(key);
+  });
+}
+function wsRemove(){
+  var key = wsModelKey(), id = WS_MODELS[key];
+  if(!confirm('¿Quitar el motor de voz descargado? Liberas unos ' + WS_SIZES[key] + ' MB y puedes descargarlo de nuevo cuando quieras.')) return;
+  function done(){ store.del('h-wpre-' + key); store.set('h-setup', 'skip'); wsRefreshNote(); wsSettingsStatus(); }
+  if(!window.caches){ done(); return; }
+  caches.open('transformers-cache').then(function(c){
+    return c.keys().then(function(ks){
+      return Promise.all(ks.filter(function(r){ return r.url.indexOf(id) >= 0; }).map(function(r){ return c.delete(r); }));
+    });
+  }).then(done, done);
+}
+function initWhisperUI(){
+  var s = sEl('setWsModel'); if(s) s.value = wsModelKey();
+  wsRefreshNote(); wsSettingsStatus();
+}
+
+// ── CORREGIR LA LETRA DENTRO DEL CIFRADO ─────────────────
+var editTgt = { c: 'chords', a: 'chords', i: 'chords', m: 'chords' };
+var le = null;
+function setEditTarget(k, t){
+  editTgt[k] = t;
+  document.getElementById(k + 'Sheet').classList.toggle('lyr-mode', t === 'lyrics');
+  var a = document.getElementById('ebMc-' + k), b = document.getElementById('ebMl-' + k);
+  if(a) a.classList.toggle('on', t === 'chords');
+  if(b) b.classList.toggle('on', t === 'lyrics');
+  var h = document.getElementById('ebH-' + k);
+  if(h) h.textContent = t === 'lyrics'
+    ? 'Toca una línea para corregir sus palabras. Los acordes se quedan sobre las mismas palabras.'
+    : 'Toca un acorde para cambiarlo o quitarlo. Toca una palabra de la letra para agregar un acorde ahí.';
+}
+function wordStarts(line){
+  var a = [], re = /\S+/g, m;
+  while((m = re.exec(line))) a.push(m.index);
+  return a;
+}
+// Si se corrige la letra de una canción transcrita, la transcripción guarda el texto nuevo (los tiempos no cambian)
+function syncTrFromText(){
+  if(!trLines.length || !state.a.raw) return;
+  var elig = parseSong(state.a.raw).body.split('\n').filter(function(l){ return l.trim() && !isLabelLine(l) && !isChordLine(l); });
+  if(elig.length !== trLines.length) return;
+  elig.forEach(function(l, i){ trLines[i].text = l.trim(); });
+  trFinal = trLines.map(function(l){ return l.text; }).join('\n') + '\n';
+}
+function editLyric(k, li, newText){
+  var s = state[k];
+  pushUndo(k); bake(k);
+  var p = parseSong(s.raw), lines = p.body.split('\n'), old = lines[li];
+  if(old === undefined) return;
+  var prev = li > 0 ? lines[li - 1] : '';
+  if(li > 0 && prev.trim() && isChordLine(prev)){
+    // cada acorde se queda sobre la misma palabra (por posición de palabra)
+    var oldS = wordStarts(old), newS = wordStarts(newText);
+    var toks = chordTokens(prev).map(function(t){
+      var wi = 0, j;
+      for(j = 0; j < oldS.length; j++){ if(oldS[j] <= t.col) wi = j; else break; }
+      return { col: newS.length ? newS[Math.min(wi, newS.length - 1)] : 0, text: t.text };
+    });
+    lines[li - 1] = buildChordLine(toks);
+  }
+  lines[li] = newText;
+  var body = lines.join('\n');
+  s.raw = assemble(body, uniqueChords(body), p.notes);
+  if(k === 'a') syncTrFromText();
+  afterEdit(k);
+}
+function openLineEd(k, li, pair){
+  var s = state[k], lines = parseSong(tText(s.raw, s.off)).body.split('\n');
+  if(lines[li] === undefined) return;
+  var t = pair.getAttribute('data-t');
+  le = { k: k, li: li, t: t === null ? null : parseFloat(t) };
+  document.getElementById('leIn').value = lines[li].trim();
+  document.getElementById('leErr').style.display = 'none';
+  var pb = document.getElementById('lePlay');
+  pb.style.display = (k === 'a' && le.t !== null && audioBuf) ? 'block' : 'none';
+  pb.textContent = '▶ Escuchar esta línea';
+  document.getElementById('lineEd').classList.add('open');
+  setTimeout(function(){ var i = document.getElementById('leIn'); if(i && i.focus) i.focus(); }, 80);
+}
+function closeLineEd(){
+  document.getElementById('lineEd').classList.remove('open');
+  if(isPlay && le && le.k === 'a') pauseAudio();
+}
+function saveLineEd(){
+  if(!le) return;
+  var v = document.getElementById('leIn').value.replace(/\s+/g, ' ').trim(), er = document.getElementById('leErr');
+  var bad = '';
+  if(!v) bad = 'La línea no puede quedar vacía.';
+  else if(isChordLine(v) || isLabelLine(v)) bad = 'Eso parece un título o unos acordes. Para eso usa «Texto».';
+  if(bad){ er.textContent = bad; er.style.display = 'block'; return; }
+  var cur = le;
+  if(isPlay && cur.k === 'a') pauseAudio();
+  document.getElementById('lineEd').classList.remove('open');
+  editLyric(cur.k, cur.li, v);
+}
+function playLineEd(){
+  if(!le || le.t === null) return;
+  var pb = document.getElementById('lePlay');
+  if(isPlay){ pauseAudio(); pb.textContent = '▶ Escuchar esta línea'; }
+  else { seekToTime(le.t); pb.textContent = '⏸ Pausar'; }
+}
+function initLineEd(){
+  var d = document.createElement('div');
+  d.className = 'modal-bg'; d.id = 'lineEd'; d.style.zIndex = '700';
+  d.innerHTML = '<div class="modal"><div class="modal-handle"></div><div class="modal-title">Corregir letra</div>'
+    + '<input class="set-in" id="leIn" type="text" autocomplete="off" autocapitalize="sentences" spellcheck="false" style="font-family:var(--fb);font-size:16px;margin:4px 0 8px;">'
+    + '<div id="leErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:8px;"></div>'
+    + '<button class="btn btn-soft" id="lePlay" onclick="playLineEd()" style="width:100%;margin-bottom:8px;">▶ Escuchar esta línea</button>'
+    + '<div class="act-row" style="margin:6px 0 0;">'
+    + '<button class="btn btn-ghost" onclick="closeLineEd()">Cancelar</button>'
+    + '<button class="btn btn-amber" onclick="saveLineEd()">Guardar</button></div></div>';
+  d.addEventListener('click', function(e){ if(e.target === d) closeLineEd(); });
+  document.body.appendChild(d);
+  document.getElementById('leIn').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); saveLineEd(); } });
+}
+
+// ── TABLA DE ACORDES: el acorde que suena se resalta ─────
+var chipEls = [], chipCur = -1;
+function markChordChip(t){
+  if(!chipEls.length) return;
+  var idx = 0, i;
+  for(i = 0; i < chipEls.length; i++){
+    if(parseFloat(chipEls[i].getAttribute('data-t')) <= t + 0.05) idx = i; else break;
+  }
+  if(idx === chipCur) return;
+  if(chipCur >= 0 && chipEls[chipCur]) chipEls[chipCur].classList.remove('cur');
+  chipCur = idx;
+  var el = chipEls[idx]; el.classList.add('cur');
+  var box = document.getElementById('chordTl'), r = el.getBoundingClientRect(), b = box.getBoundingClientRect();
+  if(r.top < b.top || r.bottom > b.bottom) box.scrollTop += r.top - b.top - 8;
+}
+
+// ── VISUALIZADOR DE VOZ (Compose) ────────────────────────
+var micVizStream = null, micVizCtx = null, micVizRaf = null, micVizTok = 0;
+
+function startMicVisualizer(){
+  var vis = document.getElementById('micVisualizer');
+  var canvas = document.getElementById('micCanvas');
+  if(!vis || !canvas) return;
+  var tok = ++micVizTok;
+  try{
+    if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return;   // sin micrófono disponible: no se muestra
+    vis.style.display = 'block';
+    try{   // que la barra de pestañas no tape la onda: baja lo justo para verla
+      var tb = document.querySelector('.tab'), bar = tb && tb.parentElement ? tb.parentElement.getBoundingClientRect().height : 80;
+      var over = vis.getBoundingClientRect().bottom - (window.innerHeight - bar - 12);
+      if(over > 0) window.scrollBy({ top: over, behavior: 'smooth' });
+    }catch(e){}
+    var ctx = canvas.getContext('2d');
+    function resize(){
+      var dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.clientWidth * dpr;
+      canvas.height = canvas.clientHeight * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    if(!micVizCtx) micVizCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(micVizCtx.state === 'suspended') micVizCtx.resume();
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream){
+      if(tok !== micVizTok){ stream.getTracks().forEach(function(t){ t.stop(); }); return; }   // ya se detuvo mientras llegaba el permiso
+      micVizStream = stream;
+      var src = micVizCtx.createMediaStreamSource(stream);
+      var an = micVizCtx.createAnalyser();
+      an.fftSize = 256;
+      src.connect(an);
+      var data = new Uint8Array(an.frequencyBinCount);
+      function draw(){
+        micVizRaf = requestAnimationFrame(draw);
+        an.getByteTimeDomainData(data);
+        var W = canvas.clientWidth, H = canvas.clientHeight;
+        ctx.clearRect(0, 0, W, H);
+        ctx.beginPath();
+        ctx.strokeStyle = '#e8a030';
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#e8a030';
+        var slice = W / data.length, x = 0;
+        for(var i = 0; i < data.length; i++){
+          var v = data[i] / 128, y = v * H / 2;
+          if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          x += slice;
+        }
+        ctx.stroke();
+      }
+      draw();
+    }).catch(function(){ if(tok === micVizTok) vis.style.display = 'none'; });         // permiso negado: se oculta
+  }catch(e){ vis.style.display = 'none'; }
+}
+
+function stopMicVisualizer(){
+  micVizTok++;
+  var vis = document.getElementById('micVisualizer');
+  if(vis) vis.style.display = 'none';
+  if(micVizRaf){ cancelAnimationFrame(micVizRaf); micVizRaf = null; }
+  if(micVizStream){ micVizStream.getTracks().forEach(function(t){ t.stop(); }); micVizStream = null; }
+}
+
 // ── INIT ──────────────────────────────────────────────────
 (function(){
   applyTheme(store.get('h-light', '') === 'true');
   setFsVar(store.get('h-fs2', '12'));
   buildKeyGrid(); updTone(); buildDots(); showBpm();
   initEdit();
+  initLineEd();
   initWhisperUI();
+  window.addEventListener('appinstalled', function(){ maybeSetup(); });
   initShare();
   fwInit();
   if(navigator.storage && navigator.storage.persist){ try{ navigator.storage.persist().catch(function(){}); }catch(e){} }
