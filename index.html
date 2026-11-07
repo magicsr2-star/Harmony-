@@ -2011,7 +2011,7 @@ var IS_ANDROID = /Android/i.test(navigator.userAgent);
 function getSR(){ return window.SpeechRecognition || window.webkitSpeechRecognition; }
 
 function listen(o){
-  var SR = getSR(), wanted = true, rec = null, empty = 0, done = false, started = false, heard = false;
+  var SR = getSR(), wanted = true, rec = null, empty = 0, done = false, started = false;
   var phraseOpen = false;
   function openPhrase(){ if(!phraseOpen){ phraseOpen = true; if(o.onPhraseStart) o.onPhraseStart(); } }
   var ctl = {
@@ -2029,13 +2029,14 @@ function listen(o){
     rec.continuous = !IS_ANDROID;          // en Android, frase por frase + reinicio
     rec.interimResults = !!o.interim;
     rec.onstart = function(){ if(!started){ started = true; if(o.onStart) o.onStart(); } };
-    rec.onspeechstart = function(){ openPhrase(); };
+    rec.onspeechstart = function(){ openPhrase(); if(o.onSpeechStart) o.onSpeechStart(); };
+    rec.onspeechend = function(){ if(o.onSpeechEnd) o.onSpeechEnd(); };
     rec.onresult = function(e){
       var interim = '';
       for(var i = e.resultIndex; i < e.results.length; i++){
         var tr = e.results[i][0].transcript;
         openPhrase();
-        if(e.results[i].isFinal){ got = true; heard = true; if(tr.trim()) o.onFinal(tr.trim()); phraseOpen = false; }
+        if(e.results[i].isFinal){ got = true; if(tr.trim()) o.onFinal(tr.trim()); phraseOpen = false; }
         else interim += tr;
       }
       if(o.onInterim) o.onInterim(interim);
@@ -2054,14 +2055,11 @@ function listen(o){
           if(!wanted){ finish(); return; }
           try{ begin(); }catch(e){ finish(); }
         }, 150);
-      } else {
-        if(wanted && !heard) alert('No se detectó voz. Habla más cerca del micrófono y revisa que ninguna otra app esté usando el micrófono.');
-        finish();
-      }
+      } else finish();
     };
     rec.start();
   }
-  try{ begin(); }catch(e){ if(!started) alert('No se pudo iniciar el reconocimiento de voz. Cierra otras apps que usen el micrófono e inténtalo de nuevo.'); finish(); }
+  try{ begin(); }catch(e){ finish(); }
   return ctl;
 }
 
@@ -2072,8 +2070,10 @@ function toggleVoice(k){
   isRec[k] = true;
   document.getElementById(btnId).classList.add('rec');
   document.getElementById(lblId).textContent = 'DETENER';
+  startMicVisualizer();
   recogs[k] = listen({
-    onStart: function(){ startMicVisualizer(); },
+    onSpeechStart: function(){ micVizSpeech(true); },
+    onSpeechEnd: function(){ micVizSpeech(false); },
     onFinal: function(t){
       var ta = document.getElementById(taId);
       if(ta.value && !/\n$/.test(ta.value)) ta.value += '\n';
@@ -4339,15 +4339,17 @@ function markChordChip(t){
 }
 
 // ── VISUALIZADOR DE VOZ (Compose) ────────────────────────
-var micVizStream = null, micVizCtx = null, micVizRaf = null, micVizTok = 0;
+// La onda NO abre el micrófono: en Android compite con el dictado y lo deja sin audio.
+// Se anima con los avisos del propio reconocimiento de voz (empezó / terminó de hablar).
+var micVizRaf = null, micVizSpeaking = false, micVizLevel = 0.07, micVizPhase = 0, micVizSince = 0;
+
+function micVizSpeech(on){ micVizSpeaking = !!on; if(on) micVizSince = Date.now(); }
 
 function startMicVisualizer(){
   var vis = document.getElementById('micVisualizer');
   var canvas = document.getElementById('micCanvas');
   if(!vis || !canvas) return;
-  var tok = ++micVizTok;
   try{
-    if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return;   // sin micrófono disponible: no se muestra
     vis.style.display = 'block';
     try{   // que la barra de pestañas no tape la onda: baja lo justo para verla
       var tb = document.querySelector('.tab'), bar = tb && tb.parentElement ? tb.parentElement.getBoundingClientRect().height : 80;
@@ -4355,52 +4357,43 @@ function startMicVisualizer(){
       if(over > 0) window.scrollBy({ top: over, behavior: 'smooth' });
     }catch(e){}
     var ctx = canvas.getContext('2d');
-    function resize(){
-      var dpr = window.devicePixelRatio || 1;
-      canvas.width = canvas.clientWidth * dpr;
-      canvas.height = canvas.clientHeight * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-    resize();
-    if(!micVizCtx) micVizCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if(micVizCtx.state === 'suspended') micVizCtx.resume();
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream){
-      if(tok !== micVizTok){ stream.getTracks().forEach(function(t){ t.stop(); }); return; }   // ya se detuvo mientras llegaba el permiso
-      micVizStream = stream;
-      var src = micVizCtx.createMediaStreamSource(stream);
-      var an = micVizCtx.createAnalyser();
-      an.fftSize = 256;
-      src.connect(an);
-      var data = new Uint8Array(an.frequencyBinCount);
-      function draw(){
-        micVizRaf = requestAnimationFrame(draw);
-        an.getByteTimeDomainData(data);
-        var W = canvas.clientWidth, H = canvas.clientHeight;
-        ctx.clearRect(0, 0, W, H);
-        ctx.beginPath();
-        ctx.strokeStyle = '#e8a030';
-        ctx.lineWidth = 2;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#e8a030';
-        var slice = W / data.length, x = 0;
-        for(var i = 0; i < data.length; i++){
-          var v = data[i] / 128, y = v * H / 2;
-          if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-          x += slice;
-        }
-        ctx.stroke();
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.clientWidth * dpr;
+    canvas.height = canvas.clientHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    micVizSpeaking = false; micVizLevel = 0.07; micVizPhase = 0;
+    if(micVizRaf) cancelAnimationFrame(micVizRaf);
+    var last = 0;
+    function draw(ts){
+      micVizRaf = requestAnimationFrame(draw);
+      var dt = last ? Math.min(0.05, (ts - last) / 1000) : 0.016; last = ts;
+      if(micVizSpeaking && Date.now() - micVizSince > 15000) micVizSpeaking = false;   // por si no llega el aviso de fin
+      var target = micVizSpeaking ? 0.72 + 0.22 * Math.sin(ts / 90) * Math.sin(ts / 230) : 0.07;
+      micVizLevel += (target - micVizLevel) * Math.min(1, dt * 10);
+      micVizPhase += dt * (micVizSpeaking ? 9 : 2.5);
+      var W = canvas.clientWidth, H = canvas.clientHeight, mid = H / 2;
+      ctx.clearRect(0, 0, W, H);
+      ctx.beginPath();
+      ctx.strokeStyle = '#e8a030';
+      ctx.lineWidth = 2;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#e8a030';
+      for(var x = 0; x <= W; x += 2){
+        var u = x / W, env = Math.sin(Math.PI * u);
+        var y = mid + env * micVizLevel * mid * 0.9 * (0.6 * Math.sin(u * 18 + micVizPhase) + 0.4 * Math.sin(u * 7 - micVizPhase * 1.3));
+        if(x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
-      draw();
-    }).catch(function(){ if(tok === micVizTok) vis.style.display = 'none'; });         // permiso negado: se oculta
+      ctx.stroke();
+    }
+    micVizRaf = requestAnimationFrame(draw);
   }catch(e){ vis.style.display = 'none'; }
 }
 
 function stopMicVisualizer(){
-  micVizTok++;
   var vis = document.getElementById('micVisualizer');
   if(vis) vis.style.display = 'none';
   if(micVizRaf){ cancelAnimationFrame(micVizRaf); micVizRaf = null; }
-  if(micVizStream){ micVizStream.getTracks().forEach(function(t){ t.stop(); }); micVizStream = null; }
+  micVizSpeaking = false;
 }
 
 // ── INIT ──────────────────────────────────────────────────

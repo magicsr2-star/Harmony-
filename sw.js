@@ -1,7 +1,7 @@
-// Harmony service worker v1.6.2
+// Harmony service worker v1.6.3
 // Para GitHub Pages en subcarpeta (usuario.github.io/harmony/).
 // Para publicar una versión nueva basta con cambiar el número de CACHE.
-var CACHE = 'harmony-v1.6.2';
+var CACHE = 'harmony-v1.6.3';
 var PREFIJO = 'harmony-';   // solo se borran cachés propios: el origen se comparte con tus otras apps
 var SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './privacy.html'];
 var FUENTES = /(^|\.)(fonts\.googleapis\.com|fonts\.gstatic\.com|api\.fontshare\.com|cdn\.fontshare\.com)$/;
