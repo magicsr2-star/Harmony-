@@ -2011,7 +2011,7 @@ var IS_ANDROID = /Android/i.test(navigator.userAgent);
 function getSR(){ return window.SpeechRecognition || window.webkitSpeechRecognition; }
 
 function listen(o){
-  var SR = getSR(), wanted = true, rec = null, empty = 0, done = false, started = false;
+  var SR = getSR(), wanted = true, rec = null, empty = 0, done = false, started = false, heard = false;
   var phraseOpen = false;
   function openPhrase(){ if(!phraseOpen){ phraseOpen = true; if(o.onPhraseStart) o.onPhraseStart(); } }
   var ctl = {
@@ -2035,7 +2035,7 @@ function listen(o){
       for(var i = e.resultIndex; i < e.results.length; i++){
         var tr = e.results[i][0].transcript;
         openPhrase();
-        if(e.results[i].isFinal){ got = true; if(tr.trim()) o.onFinal(tr.trim()); phraseOpen = false; }
+        if(e.results[i].isFinal){ got = true; heard = true; if(tr.trim()) o.onFinal(tr.trim()); phraseOpen = false; }
         else interim += tr;
       }
       if(o.onInterim) o.onInterim(interim);
@@ -2054,11 +2054,14 @@ function listen(o){
           if(!wanted){ finish(); return; }
           try{ begin(); }catch(e){ finish(); }
         }, 150);
-      } else finish();
+      } else {
+        if(wanted && !heard) alert('No se detectó voz. Habla más cerca del micrófono y revisa que ninguna otra app esté usando el micrófono.');
+        finish();
+      }
     };
     rec.start();
   }
-  try{ begin(); }catch(e){ finish(); }
+  try{ begin(); }catch(e){ if(!started) alert('No se pudo iniciar el reconocimiento de voz. Cierra otras apps que usen el micrófono e inténtalo de nuevo.'); finish(); }
   return ctl;
 }
 
@@ -2069,8 +2072,8 @@ function toggleVoice(k){
   isRec[k] = true;
   document.getElementById(btnId).classList.add('rec');
   document.getElementById(lblId).textContent = 'DETENER';
-  startMicVisualizer();
   recogs[k] = listen({
+    onStart: function(){ startMicVisualizer(); },
     onFinal: function(t){
       var ta = document.getElementById(taId);
       if(ta.value && !/\n$/.test(ta.value)) ta.value += '\n';
